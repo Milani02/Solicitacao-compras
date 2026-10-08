@@ -39,10 +39,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # CLI do Prisma + schema/migrations, para rodar `migrate deploy` no start.
+# Chamamos build/index.js diretamente (não via node_modules/.bin/prisma):
+# esse é um symlink no Linux, e o COPY entre estágios abaixo o desfaz,
+# copiando o conteúdo do alvo para um arquivo comum em .bin/ — o
+# require('./cli.js') relativo lá dentro passa a apontar pro lugar errado.
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/dotenv ./node_modules/dotenv
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
@@ -52,4 +55,4 @@ USER nextjs
 EXPOSE 3000
 
 # Aplica migrations pendentes contra o Postgres de produção e sobe o servidor.
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["sh", "-c", "node node_modules/prisma/build/index.js migrate deploy && node server.js"]
