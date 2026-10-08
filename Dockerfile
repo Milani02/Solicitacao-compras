@@ -8,6 +8,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps
 
+# --- deps-prod: só dependências de produção, para rodar a CLI do Prisma em
+# runtime (migrate deploy). A árvore de deps dela (@prisma/config -> effect,
+# c12, etc.) é funda demais pra copiar pacote por pacote de forma confiável. ---
+FROM base AS deps-prod
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --legacy-peer-deps
+
 # --- builder: gera o Prisma Client e builda o Next.js ---
 FROM base AS builder
 WORKDIR /app
@@ -38,14 +46,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# CLI do Prisma + schema/migrations, para rodar `migrate deploy` no start.
+# CLI do Prisma completa (com toda a árvore de deps de @prisma/config) +
+# schema/migrations, para rodar `migrate deploy` no start. Mescla sobre o
+# node_modules traçado do standalone acima, sem substituí-lo.
 # Chamamos build/index.js diretamente (não via node_modules/.bin/prisma):
-# esse é um symlink no Linux, e o COPY entre estágios abaixo o desfaz,
+# esse é um symlink no Linux, e um COPY avulso dele entre estágios o desfaz,
 # copiando o conteúdo do alvo para um arquivo comum em .bin/ — o
 # require('./cli.js') relativo lá dentro passa a apontar pro lugar errado.
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/dotenv ./node_modules/dotenv
+COPY --from=deps-prod --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
