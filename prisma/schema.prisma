@@ -1,0 +1,208 @@
+// Schema do sistema de Solicitação de Compras (Biodinâmica)
+// Banco: Postgres gerenciado pelo Supabase.
+// Autenticação: Supabase Auth (schema `auth`, fora do Prisma). O modelo
+// Profile abaixo vive no schema `public` e seu `id` é sempre igual ao
+// `auth.users.id` do usuário correspondente — a FK para auth.users é
+// criada via SQL bruto em prisma/migrations (ver 0_init/migration.sql),
+// não pelo Prisma, pois o schema `auth` é gerenciado pelo Supabase.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  GESTOR
+  DIRETORIA
+  ADMIN
+}
+
+enum StatusSolicitacao {
+  RASCUNHO
+  AGUARDANDO_APROVACAO
+  EM_COTACAO
+  AGUARDANDO_APROVACAO_FINAL
+  APROVADA
+  REPROVADA
+  CONCLUIDA
+  CANCELADA
+}
+
+model Profile {
+  id        String   @id @db.Uuid
+  nome      String
+  email     String   @unique
+  role      Role
+  ativo     Boolean  @default(true)
+  // Permissão independente do role principal — dá acesso à tela de
+  // Controle de Compras (lista de aprovadas + nota fiscal/observações +
+  // export) sem tirar as permissões normais do papel da pessoa (ex: a
+  // Raquel é DIRETORIA e também tem essa tela).
+  controleCompras Boolean @default(false)
+  setorId   String?  @db.Uuid
+  setor     Setor?   @relation(fields: [setorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  solicitacoesCriadas SolicitacaoCompra[] @relation("Requisitante")
+  solicitacoesAprovadas SolicitacaoCompra[] @relation("Aprovador")
+  historico           HistoricoStatus[]
+  anexosCotacao       AnexoCotacao[]
+
+  @@map("profiles")
+}
+
+model Setor {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nome         String        @unique
+  createdAt    DateTime      @default(now())
+
+  usuarios     Profile[]
+  centrosCusto CentroCusto[]
+  solicitacoes SolicitacaoCompra[]
+
+  @@map("setores")
+}
+
+model CentroCusto {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  codigo    String
+  descricao String
+  setorId   String   @db.Uuid
+  setor     Setor    @relation(fields: [setorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  solicitacoes SolicitacaoCompra[]
+
+  @@unique([setorId, codigo])
+  @@map("centros_custo")
+}
+
+model Counter {
+  id    String @id
+  valor Int    @default(0)
+
+  @@map("counters")
+}
+
+model SolicitacaoCompra {
+  id     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  numero String            @unique
+  status StatusSolicitacao @default(RASCUNHO)
+
+  requisitanteId String  @db.Uuid
+  requisitante   Profile @relation("Requisitante", fields: [requisitanteId], references: [id])
+
+  setorId String @db.Uuid
+  setor   Setor  @relation(fields: [setorId], references: [id])
+
+  centroCustoId String      @db.Uuid
+  centroCusto   CentroCusto @relation(fields: [centroCustoId], references: [id])
+
+  finalidade    String
+  justificativa String
+
+  aprovadorId      String?   @db.Uuid
+  aprovador        Profile?  @relation("Aprovador", fields: [aprovadorId], references: [id])
+  aprovadoEm       DateTime?
+  motivoReprovacao String?
+
+  fornecedorAprovadoId String?     @unique @db.Uuid
+  fornecedorAprovado   Fornecedor? @relation("FornecedorEscolhido", fields: [fornecedorAprovadoId], references: [id])
+
+  // Preenchidos pelo Controle de Compras depois que a Diretoria aprova —
+  // não fazem parte do fluxo de aprovação, só do controle financeiro.
+  notaFiscal  String?
+  observacoes String?
+
+  itens        ItemSolicitacao[]
+  fornecedores Fornecedor[]      @relation("FornecedoresDaSolicitacao")
+  historico    HistoricoStatus[]
+  anexosCotacao AnexoCotacao[]
+
+  enviadaEm DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("solicitacoes_compra")
+}
+
+model ItemSolicitacao {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitacaoId String            @db.Uuid
+  solicitacao   SolicitacaoCompra @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  ordem         Int
+  codigo        String?
+  quantidade    Float
+  unidade       String
+  especificacao String
+
+  cotacoes CotacaoItem[]
+
+  @@map("itens_solicitacao")
+}
+
+model Fornecedor {
+  id            String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitacaoId String            @db.Uuid
+  solicitacao   SolicitacaoCompra @relation("FornecedoresDaSolicitacao", fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  ordem         Int
+  nome          String
+  telefone      String?
+  contato       String?
+
+  cotacoes    CotacaoItem[]
+  escolhidoEm SolicitacaoCompra? @relation("FornecedorEscolhido")
+
+  @@unique([solicitacaoId, ordem])
+  @@map("fornecedores")
+}
+
+model CotacaoItem {
+  id           String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  itemId       String          @db.Uuid
+  item         ItemSolicitacao @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  fornecedorId String          @db.Uuid
+  fornecedor   Fornecedor      @relation(fields: [fornecedorId], references: [id], onDelete: Cascade)
+  codMaterial  String?
+  valorCentavos Int
+
+  @@unique([itemId, fornecedorId])
+  @@map("cotacoes_item")
+}
+
+model HistoricoStatus {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitacaoId  String             @db.Uuid
+  solicitacao    SolicitacaoCompra  @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  statusAnterior StatusSolicitacao?
+  statusNovo     StatusSolicitacao
+  usuarioId      String?            @db.Uuid
+  usuario        Profile?           @relation(fields: [usuarioId], references: [id])
+  comentario     String?
+  createdAt      DateTime           @default(now())
+
+  @@map("historico_status")
+}
+
+// Fotos/prints de orçamento anexados durante a cotação (ex: print do preço
+// em 3 lojas diferentes) — associados ao "slot" do fornecedor (ordem 1/2/3
+// no formulário de cotação), não ao Fornecedor em si, porque salvarCotacao
+// apaga e recria os fornecedores a cada salvamento.
+model AnexoCotacao {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  solicitacaoId   String            @db.Uuid
+  solicitacao     SolicitacaoCompra @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  fornecedorOrdem Int
+  path            String
+  nomeArquivo     String
+  criadoPorId     String            @db.Uuid
+  criadoPor       Profile           @relation(fields: [criadoPorId], references: [id])
+  createdAt       DateTime          @default(now())
+
+  @@map("anexos_cotacao")
+}

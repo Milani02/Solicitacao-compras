@@ -1,26 +1,326 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-display);
+  --font-display: var(--font-fraunces);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  /* Marca Biodinâmica — extraídas do site institucional */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-olive: var(--brand-olive);
+  --color-brand-olive-light: var(--brand-olive-light);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-paper: var(--brand-paper);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* Tokens de marca — não mudam entre claro/escuro, são a identidade Biodinâmica */
+  --brand-navy: #0b1b33;
+  --brand-olive: #4b5926;
+  --brand-olive-light: #657544;
+  --brand-gold: #c9a227;
+  --brand-paper: #faf9f4;
+  --brand-gradient: linear-gradient(
+    135deg,
+    var(--brand-navy) 0%,
+    var(--brand-olive) 55%,
+    var(--brand-gold) 100%
+  );
+  --brand-swatch: linear-gradient(
+    90deg,
+    var(--brand-navy) 0% 33.33%,
+    var(--brand-olive) 33.33% 66.66%,
+    var(--brand-gold) 66.66% 100%
+  );
+
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: var(--brand-olive);
+  --primary-foreground: #faf9f4;
+  --secondary: #e8e8ed;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f5f5f7;
+  --muted-foreground: #6e6e73;
+  --accent: #e8e8ed;
+  --accent-foreground: #1d1d1f;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #d2d2d7;
+  --input: #d2d2d7;
+  --ring: var(--brand-olive);
+  --chart-1: var(--brand-olive);
+  --chart-2: var(--brand-gold);
+  --chart-3: #35507d;
+  --chart-4: #a6432f;
+  --chart-5: #8b8e73;
+  --radius: 0.75rem;
+  --sidebar: var(--brand-navy);
+  --sidebar-foreground: #e8e6dc;
+  --sidebar-primary: var(--brand-gold);
+  --sidebar-primary-foreground: var(--brand-navy);
+  --sidebar-accent: rgba(255, 255, 255, 0.12);
+  --sidebar-accent-foreground: #f5f3ea;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: var(--brand-gold);
+}
+
+.dark {
+  --background: #1c1c1e;
+  --foreground: #f5f5f7;
+  --card: #2c2c2e;
+  --card-foreground: #f5f5f7;
+  --popover: #2c2c2e;
+  --popover-foreground: #f5f5f7;
+  --primary: #9ab558;
+  --primary-foreground: #1c1c1e;
+  --secondary: #3a3a3c;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  --accent: #3a3a3c;
+  --accent-foreground: #f5f5f7;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.16);
+  --ring: #9ab558;
+  --chart-1: #9ab558;
+  --chart-2: #d9b94a;
+  --chart-3: #6b8cc2;
+  --chart-4: #c2604a;
+  --chart-5: #9c9e82;
+  --sidebar: var(--brand-navy);
+  --sidebar-foreground: #e8e6dc;
+  --sidebar-primary: var(--brand-gold);
+  --sidebar-primary-foreground: var(--brand-navy);
+  --sidebar-accent: rgba(255, 255, 255, 0.12);
+  --sidebar-accent-foreground: #f5f3ea;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: var(--brand-gold);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .bg-brand-gradient {
+    background-image: var(--brand-gradient);
+  }
+  .bg-brand-swatch {
+    background-image: var(--brand-swatch);
+  }
+  /* Tabular/mono para números de solicitação, valores e contadores — a
+     assinatura de "instrumento de precisão" do sistema. */
+  .font-data {
+    font-family: var(--font-geist-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  /* Profundidade do card de login — luz de contato + sombra ambiente no
+     claro; realce de borda superior + halo dourado sutil no escuro, já que
+     sombra escura sobre fundo escuro não se lê como elevação. */
+  .card-elevated {
+    box-shadow:
+      0 1px 1px rgba(0, 0, 0, 0.03),
+      0 4px 12px -4px rgba(0, 0, 0, 0.07),
+      0 16px 32px -12px rgba(0, 0, 0, 0.1),
+      0 32px 64px -24px rgba(0, 0, 0, 0.14);
+  }
+  .dark .card-elevated {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 2px 8px -2px rgba(0, 0, 0, 0.4),
+      0 16px 32px -12px rgba(0, 0, 0, 0.55),
+      0 32px 64px -24px rgba(0, 0, 0, 0.6),
+      0 0 64px -28px color-mix(in oklab, var(--brand-gold) 30%, transparent);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shade-reveal {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes status-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand-gold) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in oklab, var(--brand-gold) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 500ms cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+
+.animate-shade-reveal {
+  animation: shade-reveal 600ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  transform-origin: left;
+}
+
+.animate-status-pulse {
+  animation: status-pulse 900ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Gota de tinta contínua — assinatura dos botões de ação principal.
+   Cada gota usa a variável --drip (distância máxima) e um delay/duração
+   levemente diferentes para não cair em sincronia. */
+@keyframes wet-drip {
+  0%,
+  8% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  58% {
+    transform: translateY(var(--drip));
+    opacity: 1;
+  }
+  82% {
+    transform: translateY(calc(var(--drip) + 7px));
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+}
+
+.animate-wet-drip {
+  animation: wet-drip 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/* Blobs de gradiente derivando lentamente no painel de marca do login. */
+@keyframes drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(4%, -6%) scale(1.08);
+  }
+  66% {
+    transform: translate(-3%, 4%) scale(0.96);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+.animate-drift {
+  animation: drift 22s ease-in-out infinite;
+}
+
+/* Gotas de pigmento subindo lentamente — eco do produto real da marca. */
+@keyframes float-up {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--drop-opacity, 0.5);
+  }
+  88% {
+    opacity: var(--drop-opacity, 0.5);
+  }
+  100% {
+    transform: translate(var(--drift-x, 12px), -120px);
+    opacity: 0;
+  }
+}
+
+.animate-float-up {
+  animation: float-up var(--float-duration, 12s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-shade-reveal,
+  .animate-status-pulse {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+  }
+  .animate-wet-drip,
+  .animate-drift,
+  .animate-float-up {
+    animation: none;
+  }
+  .animate-wet-drip {
+    opacity: 0;
+  }
 }
