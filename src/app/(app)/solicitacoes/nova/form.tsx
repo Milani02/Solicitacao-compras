@@ -14,7 +14,8 @@ import {
   type NovaSolicitacaoFormInput,
   type NovaSolicitacaoFormValues,
 } from "@/lib/solicitacoes/schemas";
-import { parseValorParaCentavos, formatCentavosPorUnidade } from "@/lib/format";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { parseValorParaCentavos, formatCentavosPorUnidade, mascararValor } from "@/lib/format";
 import {
   Card,
   CardContent,
@@ -559,16 +560,23 @@ function FornecedorCard({
                     {String(item.quantidade)} {item.unidade} — {item.especificacao}
                   </TableCell>
                   <TableCell>
-                    <Input
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      value={raw}
-                      onChange={(e) =>
-                        onChange({
-                          valores: { ...fornecedor.valores, [item.id]: e.target.value },
-                        })
-                      }
-                    />
+                    <InputGroup>
+                      <InputGroupAddon>R$</InputGroupAddon>
+                      <InputGroupInput
+                        inputMode="numeric"
+                        placeholder="0,00"
+                        value={raw}
+                        onChange={(e) =>
+                          onChange({
+                            valores: {
+                              ...fornecedor.valores,
+                              [item.id]: mascararValor(e.target.value),
+                            },
+                          })
+                        }
+                        className="text-right tabular-nums"
+                      />
+                    </InputGroup>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {centavos !== null && quantidade > 0
