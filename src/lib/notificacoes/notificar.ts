@@ -103,7 +103,7 @@ export async function notificarStatus(
           subject: `Compra concluída — ${solicitacao.numero}`,
           html: emailShell({
             title: "Compra concluída",
-            body: `A solicitação <b>${numero}</b> foi marcada como concluída pelo time de TI/Compras.`,
+            body: `A solicitação <b>${numero}</b> foi concluída com o lançamento da nota fiscal.`,
             tone: "neutral",
             badgeLabel: "Concluída",
             meta: [{ label: "Número", value: numero }],

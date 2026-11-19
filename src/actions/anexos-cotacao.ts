@@ -61,7 +61,8 @@ export async function enviarAnexoCotacao(formData: FormData): Promise<ActionResu
   if (solicitacao.status !== "AGUARDANDO_APROVACAO") {
     return { error: "Só é possível anexar prints antes da decisão da diretoria." };
   }
-  if (profile.role === "GESTOR" && solicitacao.requisitanteId !== profile.id) {
+  // Prints da cotação são do gestor que criou a solicitação.
+  if (profile.role !== "GESTOR" || solicitacao.requisitanteId !== profile.id) {
     return { error: "Você não pode anexar arquivos nesta solicitação." };
   }
 
@@ -102,7 +103,7 @@ export async function removerAnexoCotacao(anexoId: string): Promise<ActionResult
   if (anexo.solicitacao.status !== "AGUARDANDO_APROVACAO") {
     return { error: "Só é possível remover prints antes da decisão da diretoria." };
   }
-  if (profile.role === "GESTOR" && anexo.solicitacao.requisitanteId !== profile.id) {
+  if (profile.role !== "GESTOR" || anexo.solicitacao.requisitanteId !== profile.id) {
     return { error: "Você não pode remover este arquivo." };
   }
 

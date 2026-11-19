@@ -2,10 +2,10 @@
 
 Sistema interno de solicitação de compras e serviços. Substitui o formulário em
 papel (`docs/FB7.05-08...pdf`) por um fluxo digital: **Gestor de setor** cria a
-solicitação → **Diretoria** pré-aprova → Gestor cadastra cotações de até 3
-fornecedores → Diretoria escolhe o fornecedor e aprova → **Admin (TI)** marca
-como concluída. Cada mudança de status fica registrada no histórico e dispara
-e-mail para os envolvidos.
+solicitação já com cotações de até 3 fornecedores → **Diretoria** escolhe o
+fornecedor e aprova (ou reprova com motivo) → **Controle de Compras** lança a
+nota fiscal, o que conclui a compra automaticamente. Cada mudança de status fica
+registrada no histórico; solicitações novas avisam a Diretoria no Discord (n8n).
 
 ## Stack
 
@@ -83,10 +83,12 @@ docker run --env-file .env.local -p 3000:3000 solicitacao-compras
 
 ## Papéis do sistema
 
-- **Gestor de setor**: cria solicitações do próprio setor, cadastra cotações.
-- **Diretoria**: pré-aprova, aprova/reprova a cotação final.
-- **Admin (TI)**: gerencia usuários e setores/centros de custo, conclui compras
-  aprovadas, e tem visão total do sistema.
+- **Gestor de setor**: cria solicitações do próprio setor, com itens e cotações.
+- **Diretoria**: aprova escolhendo o fornecedor, ou reprova com motivo.
+- **Controle de Compras** (permissão extra, ligada em Usuários): lança nota
+  fiscal e observações; lançar a NF conclui a compra.
+- **Admin (TI)**: acompanha tudo e gerencia usuários, setores e centros de
+  custo. Nenhuma etapa do fluxo depende dele.
 
 Usuários são criados exclusivamente pelo Admin em **Usuários** — não há
 autocadastro. Uma senha temporária é gerada na criação e deve ser repassada ao

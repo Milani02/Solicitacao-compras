@@ -270,7 +270,6 @@ export function DetailContent({
         <ApprovalActions solicitacaoId={solicitacao.id} fornecedores={fornecedoresComTotal} />
       )}
 
-      {flags.podeConcluir && <RequestActions solicitacaoId={solicitacao.id} concluir />}
 
       <Separator />
 

@@ -17,9 +17,9 @@ function dataBr(iso: string) {
 function descreverFiltros(f: ControleComprasFilterInput) {
   const partes = [
     f.situacao === "aprovada"
-      ? "Situação: aprovadas (em andamento)"
+      ? "Situação: aprovadas (sem NF)"
       : f.situacao === "concluida"
-        ? "Situação: concluídas"
+        ? "Situação: concluídas (com NF)"
         : "Situação: aprovadas e concluídas",
   ];
   if (f.de && f.ate) partes.push(`Período de aprovação: ${dataBr(f.de)} a ${dataBr(f.ate)}`);

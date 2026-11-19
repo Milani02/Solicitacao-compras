@@ -3,17 +3,10 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Ban, CheckCircle2 } from "lucide-react";
-import { cancelar, concluir as concluirAction } from "@/actions/solicitacoes";
+import { Ban } from "lucide-react";
+import { cancelar } from "@/actions/solicitacoes";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -26,50 +19,9 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
-export function RequestActions({
-  solicitacaoId,
-  concluir = false,
-}: {
-  solicitacaoId: string;
-  concluir?: boolean;
-}) {
+export function RequestActions({ solicitacaoId }: { solicitacaoId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-
-  if (concluir) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Finalização</CardTitle>
-          <CardDescription>
-            Marque como concluída quando a compra for efetivamente realizada.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            disabled={pending}
-            onClick={() =>
-              startTransition(async () => {
-                const result = await concluirAction(solicitacaoId);
-                if (result?.error) toast.error(result.error);
-                else {
-                  toast.success("Solicitação concluída.");
-                  router.refresh();
-                }
-              })
-            }
-          >
-            {pending ? (
-              <Spinner data-icon="inline-start" />
-            ) : (
-              <CheckCircle2 data-icon="inline-start" />
-            )}
-            Concluir compra
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <AlertDialog>

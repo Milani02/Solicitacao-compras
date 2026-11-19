@@ -234,7 +234,8 @@ export async function aprovar(
   fornecedorAprovadoId: string,
   comentario?: string
 ): Promise<ActionResult> {
-  const profile = await requireRole("DIRETORIA", "ADMIN");
+  // Só a Diretoria decide — o Admin acompanha, não participa do fluxo.
+  const profile = await requireRole("DIRETORIA");
 
   const solicitacao = await prisma.solicitacaoCompra.findUnique({
     where: { id },
@@ -263,7 +264,8 @@ export async function aprovar(
 }
 
 export async function reprovar(id: string, motivo: string): Promise<ActionResult> {
-  const profile = await requireRole("DIRETORIA", "ADMIN");
+  // Só a Diretoria decide — o Admin acompanha, não participa do fluxo.
+  const profile = await requireRole("DIRETORIA");
   if (!motivo?.trim()) return { error: "Informe o motivo da reprovação." };
 
   const solicitacao = await prisma.solicitacaoCompra.findUnique({ where: { id } });
@@ -279,24 +281,13 @@ export async function reprovar(id: string, motivo: string): Promise<ActionResult
   return {};
 }
 
-export async function concluir(id: string): Promise<ActionResult> {
-  const profile = await requireRole("ADMIN");
-
-  const solicitacao = await prisma.solicitacaoCompra.findUnique({ where: { id } });
-  if (!solicitacao || solicitacao.status !== "APROVADA") {
-    return { error: "Somente solicitações aprovadas podem ser concluídas." };
-  }
-
-  await transicionar(id, solicitacao.status, "CONCLUIDA", profile.id, "Compra concluída.");
-  return {};
-}
-
 export async function cancelar(id: string): Promise<ActionResult> {
   const profile = await requireProfile();
 
   const solicitacao = await prisma.solicitacaoCompra.findUnique({ where: { id } });
   if (!solicitacao) return { error: "Solicitação não encontrada." };
-  if (profile.role === "GESTOR" && solicitacao.requisitanteId !== profile.id) {
+  // Só o gestor que criou cancela (a Diretoria reprova; o Admin só acompanha).
+  if (profile.role !== "GESTOR" || solicitacao.requisitanteId !== profile.id) {
     return { error: "Você não pode cancelar esta solicitação." };
   }
   if (!["AGUARDANDO_APROVACAO", "EM_COTACAO"].includes(solicitacao.status)) {

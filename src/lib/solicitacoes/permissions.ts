@@ -3,7 +3,6 @@ import type { Profile, SolicitacaoCompra } from "@/generated/prisma";
 export type SolicitacaoFlags = {
   isOwnerGestor: boolean;
   podeAprovar: boolean;
-  podeConcluir: boolean;
   podeCancelar: boolean;
 };
 
@@ -17,11 +16,10 @@ export function computeSolicitacaoFlags(
     profile.role === "GESTOR" && solicitacao.requisitanteId === profile.id;
   const podeAprovar =
     solicitacao.status === "AGUARDANDO_APROVACAO" &&
-    (profile.role === "DIRETORIA" || profile.role === "ADMIN");
-  const podeConcluir = solicitacao.status === "APROVADA" && profile.role === "ADMIN";
+    profile.role === "DIRETORIA";
   const podeCancelar =
     ["AGUARDANDO_APROVACAO", "EM_COTACAO"].includes(solicitacao.status) &&
-    (isOwnerGestor || profile.role === "ADMIN");
+    isOwnerGestor;
 
-  return { isOwnerGestor, podeAprovar, podeConcluir, podeCancelar };
+  return { isOwnerGestor, podeAprovar, podeCancelar };
 }

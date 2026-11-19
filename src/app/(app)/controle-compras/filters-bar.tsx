@@ -17,8 +17,8 @@ import {
 
 const SITUACAO_ITEMS = [
   { label: "Todas", value: "" },
-  { label: "Aprovadas (em andamento)", value: "aprovada" },
-  { label: "Concluídas", value: "concluida" },
+  { label: "Aprovadas (sem NF)", value: "aprovada" },
+  { label: "Concluídas (com NF)", value: "concluida" },
 ];
 
 export function ControleComprasFiltersBar() {

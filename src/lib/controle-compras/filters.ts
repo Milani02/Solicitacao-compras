@@ -5,13 +5,13 @@ export type ControleComprasFilterInput = {
   ate?: string;
   /** "pendente" filtra só quem ainda não tem nota fiscal preenchida. */
   nf?: string;
-  /** "aprovada" (compra em andamento) ou "concluida"; vazio = as duas. */
+  /** "aprovada" (ainda sem NF) ou "concluida" (NF lançada); vazio = as duas. */
   situacao?: string;
   q?: string;
 };
 
 /** Situações que a tela acompanha: a compra aprovada continua aqui depois
- * de concluída pela TI, senão a NF lançada some do controle financeiro. */
+ * de concluída (ao lançar a NF), senão some do controle financeiro. */
 export const STATUS_CONTROLE_COMPRAS = ["APROVADA", "CONCLUIDA"] as const;
 
 export function parseControleComprasFilters(
