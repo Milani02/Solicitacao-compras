@@ -51,17 +51,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Repassa o usuário já validado via header interno — o middleware é o
-  // único ponto que revalida com o servidor do Supabase Auth; páginas e
-  // actions confiam nesse header em vez de repetir a chamada de rede a
-  // cada navegação. Sempre sobrescrito aqui, nunca lido do request original,
-  // então um cliente não pode forjar o próprio x-user-id.
-  if (user) {
-    requestHeaders.set("x-user-id", user.id);
-  } else {
-    requestHeaders.delete("x-user-id");
-  }
-
+  // Não repassar o id do usuário por header: o matcher abaixo pula alguns
+  // caminhos, e neles um header forjado pelo cliente chegaria intacto às
+  // páginas/actions. O dal.ts valida a sessão por conta própria.
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   for (const { name, value, options } of cookiesToForward) {
     response.cookies.set(name, value, options);

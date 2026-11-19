@@ -1,25 +1,20 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@/generated/prisma";
 
 export const getCurrentProfile = cache(async () => {
-  // O proxy já revalidou a sessão com o servidor do Supabase Auth e repassa
-  // o id do usuário por header — evita repetir esse round-trip de rede em
-  // toda navegação/action. Só cai para getUser() se o header não existir
-  // (fora do fluxo normal de middleware).
-  let userId = (await headers()).get("x-user-id");
-
-  if (!userId) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    userId = user?.id ?? null;
-  }
+  // Nunca confiar num header com o id do usuário: o matcher do proxy pula
+  // caminhos terminados em .png/.jpg/etc. (ex: /solicitacoes/x.png casa com
+  // [id]), e nesses o header chegaria do cliente sem ser sobrescrito —
+  // bastaria forjar x-user-id para agir como qualquer usuário. getClaims()
+  // verifica a assinatura do JWT do cookie (localmente, com chaves
+  // assimétricas; senão consulta o Auth), então não dá pra forjar.
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims.sub ?? null;
 
   if (!userId) return null;
 
