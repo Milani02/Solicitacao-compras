@@ -19,6 +19,9 @@ import type { SolicitacaoFlags } from "@/lib/solicitacoes/permissions";
 import type { StatusSolicitacao } from "@/generated/prisma";
 
 const dateFmt = new Intl.DateTimeFormat("pt-BR", {
+  // Fixo em Brasília: o servidor (container) roda em UTC, e sem isso as
+  // datas renderizadas no servidor saem 3h adiantadas.
+  timeZone: "America/Sao_Paulo",
   day: "2-digit",
   month: "2-digit",
   year: "numeric",

@@ -48,10 +48,12 @@ export function buildSolicitacoesWhere(
     where.setorId = filters.setorId;
   }
 
+  // Datas do filtro são dias de Brasília (UTC-3, sem horário de verão
+  // desde 2019) — o servidor roda em UTC.
   if (filters.de || filters.ate) {
     where.createdAt = {
-      ...(filters.de ? { gte: new Date(`${filters.de}T00:00:00`) } : {}),
-      ...(filters.ate ? { lte: new Date(`${filters.ate}T23:59:59.999`) } : {}),
+      ...(filters.de ? { gte: new Date(`${filters.de}T00:00:00-03:00`) } : {}),
+      ...(filters.ate ? { lte: new Date(`${filters.ate}T23:59:59.999-03:00`) } : {}),
     };
   }
 

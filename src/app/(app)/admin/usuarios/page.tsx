@@ -14,11 +14,12 @@ export default async function UsuariosPage() {
   ]);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 md:p-6">
       <div>
         <h1 className="font-display text-2xl font-medium tracking-tight">Usuários</h1>
         <p className="text-sm text-muted-foreground">
-          Gestores, diretoria e administradores com acesso ao sistema.
+          Gestores, diretoria e administradores com acesso ao sistema. O
+          Controle de Compras é uma permissão extra, independente do papel.
         </p>
       </div>
 
@@ -30,6 +31,7 @@ export default async function UsuariosPage() {
           email: u.email,
           role: u.role,
           ativo: u.ativo,
+          controleCompras: u.controleCompras,
           setorNome: u.setor?.nome ?? null,
         }))}
         setores={setores.map((s) => ({ id: s.id, nome: s.nome }))}

@@ -26,11 +26,15 @@ export function ControleComprasRowEditor({
 
     startTransition(async () => {
       const result = await atualizarControleCompra(id, next);
-      if (result?.error) toast.error(result.error);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Controle de compra salvo.");
       // Atualiza o card (badge "NF ok"/"NF pendente", cor da borda, KPI
       // "Aguardando nota fiscal") sem perder o estado de expandido das
       // outras linhas — só os dados vêm do servidor de novo.
-      else router.refresh();
+      router.refresh();
     });
   }
 
@@ -44,6 +48,7 @@ export function ControleComprasRowEditor({
           id={`nf-${id}`}
           value={notaFiscal}
           placeholder="Nº nota fiscal"
+          maxLength={60}
           onChange={(e) => setNotaFiscal(e.target.value)}
           onBlur={() => salvar({ notaFiscal, observacoes })}
           className="h-8"
@@ -57,6 +62,7 @@ export function ControleComprasRowEditor({
           id={`obs-${id}`}
           value={observacoes}
           placeholder="Observações"
+          maxLength={1000}
           onChange={(e) => setObservacoes(e.target.value)}
           onBlur={() => salvar({ notaFiscal, observacoes })}
           className="h-8"

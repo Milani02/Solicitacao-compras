@@ -2,17 +2,36 @@ import ExcelJS from "exceljs";
 import { requireProfile } from "@/lib/auth/dal";
 import { prisma } from "@/lib/prisma";
 import { STATUS_LABEL } from "@/lib/solicitacoes/status";
-import { parseSolicitacoesFilters, buildSolicitacoesWhere } from "@/lib/solicitacoes/filters";
-import { formatCentavos, formatCentavosPorUnidade } from "@/lib/format";
-import type { Prisma } from "@/generated/prisma";
+import {
+  parseSolicitacoesFilters,
+  buildSolicitacoesWhere,
+  type SolicitacoesFilterInput,
+} from "@/lib/solicitacoes/filters";
+import { criarPlanilha, dataExcel, respostaExcel } from "@/lib/excel/planilha";
+import type { Prisma, StatusSolicitacao } from "@/generated/prisma";
 
-const dateTimeFmt = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+function dataBr(iso: string) {
+  const [ano, mes, dia] = iso.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
+function descreverFiltros(
+  f: SolicitacoesFilterInput,
+  escopo: string,
+  setorNome: string | null
+) {
+  const partes = [escopo];
+  const status = (f.status ?? "")
+    .split(",")
+    .filter((s): s is StatusSolicitacao => s in STATUS_LABEL)
+    .map((s) => STATUS_LABEL[s].toLowerCase());
+  partes.push(status.length ? `Status: ${status.join(" ou ")}` : "Todos os status");
+  if (setorNome) partes.push(`Setor: ${setorNome}`);
+  if (f.de && f.ate) partes.push(`Criadas de ${dataBr(f.de)} a ${dataBr(f.ate)}`);
+  else if (f.de) partes.push(`Criadas a partir de ${dataBr(f.de)}`);
+  else if (f.ate) partes.push(`Criadas até ${dataBr(f.ate)}`);
+  return partes.join("   ·   ");
+}
 
 export async function GET(request: Request) {
   const profile = await requireProfile();
@@ -24,92 +43,105 @@ export async function GET(request: Request) {
     profile.role === "GESTOR" ? { requisitanteId: profile.id } : {};
   const where = buildSolicitacoesWhere(scope, filters);
 
-  const solicitacoes = await prisma.solicitacaoCompra.findMany({
-    where,
-    include: {
-      setor: true,
-      centroCusto: true,
-      requisitante: true,
-      aprovador: true,
-      fornecedorAprovado: true,
-      itens: { orderBy: { ordem: "asc" } },
-      fornecedores: {
-        orderBy: { ordem: "asc" },
-        include: { cotacoes: true },
+  const [solicitacoes, setor] = await Promise.all([
+    prisma.solicitacaoCompra.findMany({
+      where,
+      include: {
+        setor: true,
+        centroCusto: true,
+        requisitante: true,
+        aprovador: true,
+        fornecedorAprovado: true,
+        itens: { orderBy: { ordem: "asc" } },
+        fornecedores: {
+          orderBy: { ordem: "asc" },
+          include: { cotacoes: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    filters.setorId
+      ? prisma.setor.findUnique({ where: { id: filters.setorId } })
+      : Promise.resolve(null),
+  ]);
+
+  const descricao = descreverFiltros(
+    filters,
+    profile.role === "GESTOR" ? "Minhas solicitações" : "Todas as solicitações",
+    setor?.nome ?? null
+  );
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Solicitação de Compras — Biodinâmica";
+  workbook.title = "Solicitações de Compra";
   workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet("Solicitações");
-
-  sheet.columns = [
-    { header: "Número", key: "numero", width: 16 },
-    { header: "Status", key: "status", width: 26 },
-    { header: "Setor", key: "setor", width: 22 },
-    { header: "Centro de custo", key: "centroCusto", width: 26 },
-    { header: "Requisitante", key: "requisitante", width: 22 },
-    { header: "Aprovador", key: "aprovador", width: 22 },
-    { header: "Finalidade", key: "finalidade", width: 40 },
-    { header: "Justificativa", key: "justificativa", width: 40 },
-    { header: "Fornecedor aprovado", key: "fornecedorAprovado", width: 24 },
-    { header: "Valor total aprovado (R$)", key: "valorAprovado", width: 20 },
-    { header: "Criada em", key: "createdAt", width: 18 },
-    { header: "Aprovada em", key: "aprovadoEm", width: 18 },
-  ];
-
-  sheet.getRow(1).font = { bold: true };
-  sheet.getRow(1).alignment = { vertical: "middle" };
+  const resumo = criarPlanilha(workbook, {
+    nome: "Solicitações",
+    titulo: "Solicitações de Compra",
+    descricao,
+    geradoPor: profile.nome,
+    colunas: [
+      { header: "Número", key: "numero", width: 15, tipo: "centro" },
+      { header: "Status", key: "status", width: 20, tipo: "centro" },
+      { header: "Criada em", key: "createdAt", width: 16, tipo: "dataHora" },
+      { header: "Setor", key: "setor", width: 20 },
+      { header: "Centro de custo", key: "centroCusto", width: 28, tipo: "textoLongo" },
+      { header: "Requisitante", key: "requisitante", width: 22 },
+      { header: "Finalidade", key: "finalidade", width: 40, tipo: "textoLongo" },
+      { header: "Justificativa", key: "justificativa", width: 40, tipo: "textoLongo" },
+      { header: "Aprovador", key: "aprovador", width: 22 },
+      { header: "Decidida em", key: "aprovadoEm", width: 16, tipo: "dataHora" },
+      { header: "Fornecedor aprovado", key: "fornecedorAprovado", width: 26, tipo: "textoLongo" },
+      { header: "Valor aprovado", key: "valorAprovado", width: 16, tipo: "moeda" },
+      { header: "Motivo da reprovação", key: "motivo", width: 34, tipo: "textoLongo" },
+    ],
+  });
 
   for (const s of solicitacoes) {
-    const totalAprovado = s.fornecedorAprovado
+    const totalAprovado = s.fornecedorAprovadoId
       ? s.fornecedores
-          .find((f) => f.id === s.fornecedorAprovado!.id)
+          .find((f) => f.id === s.fornecedorAprovadoId)
           ?.cotacoes.reduce((sum, c) => sum + c.valorCentavos, 0)
       : undefined;
 
-    sheet.addRow({
+    resumo.adicionarLinha({
       numero: s.numero,
       status: STATUS_LABEL[s.status],
+      createdAt: dataExcel(s.createdAt),
       setor: s.setor.nome,
       centroCusto: `${s.centroCusto.codigo} — ${s.centroCusto.descricao}`,
       requisitante: s.requisitante.nome,
-      aprovador: s.aprovador?.nome ?? "",
       finalidade: s.finalidade,
       justificativa: s.justificativa,
+      aprovador: s.aprovador?.nome ?? "",
+      aprovadoEm: dataExcel(s.aprovadoEm),
       fornecedorAprovado: s.fornecedorAprovado?.nome ?? "",
-      valorAprovado: totalAprovado !== undefined ? formatCentavos(totalAprovado) : "",
-      createdAt: dateTimeFmt.format(s.createdAt),
-      aprovadoEm: s.aprovadoEm ? dateTimeFmt.format(s.aprovadoEm) : "",
+      valorAprovado: totalAprovado !== undefined ? totalAprovado / 100 : null,
+      motivo: s.motivoReprovacao ?? "",
     });
   }
-
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: sheet.columns.length },
-  };
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
+  resumo.finalizar({ rotulo: "Total aprovado", somar: ["valorAprovado"] });
 
   // Segunda aba: detalhamento item a item, com valor total e valor por
   // unidade cotados em cada fornecedor (o que a listagem principal não
   // consegue mostrar numa única linha por solicitação).
-  const itensSheet = workbook.addWorksheet("Itens e valores");
-  itensSheet.columns = [
-    { header: "Número", key: "numero", width: 16 },
-    { header: "Item", key: "item", width: 40 },
-    { header: "Quantidade", key: "quantidade", width: 14 },
-    { header: "Unidade", key: "unidade", width: 12 },
-    { header: "Fornecedor", key: "fornecedor", width: 24 },
-    { header: "Fornecedor aprovado?", key: "aprovado", width: 18 },
-    { header: "Valor total (R$)", key: "valorTotal", width: 18 },
-    { header: "Valor por unidade (R$)", key: "valorUnidade", width: 20 },
-  ];
-  itensSheet.getRow(1).font = { bold: true };
-  itensSheet.getRow(1).alignment = { vertical: "middle" };
+  const itens = criarPlanilha(workbook, {
+    nome: "Itens e cotações",
+    titulo: "Itens e cotações por fornecedor",
+    descricao,
+    geradoPor: profile.nome,
+    colunas: [
+      { header: "Número", key: "numero", width: 15, tipo: "centro" },
+      { header: "Item", key: "item", width: 44, tipo: "textoLongo" },
+      { header: "Qtd.", key: "quantidade", width: 9, tipo: "numero" },
+      { header: "Un.", key: "unidade", width: 8, tipo: "centro" },
+      { header: "Fornecedor", key: "fornecedor", width: 28, tipo: "textoLongo" },
+      { header: "Escolhido", key: "aprovado", width: 11, tipo: "centro" },
+      { header: "Valor por unidade", key: "valorUnidade", width: 17, tipo: "moeda" },
+      { header: "Valor total", key: "valorTotal", width: 16, tipo: "moeda" },
+    ],
+  });
 
   for (const s of solicitacoes) {
     const itensPorId = new Map(s.itens.map((item) => [item.id, item]));
@@ -117,33 +149,22 @@ export async function GET(request: Request) {
       for (const c of f.cotacoes) {
         const item = itensPorId.get(c.itemId);
         if (!item) continue;
-        itensSheet.addRow({
+        itens.adicionarLinha({
           numero: s.numero,
           item: item.especificacao,
           quantidade: item.quantidade,
           unidade: item.unidade,
           fornecedor: f.nome,
-          aprovado: f.id === s.fornecedorAprovadoId ? "Sim" : "",
-          valorTotal: formatCentavos(c.valorCentavos),
-          valorUnidade: formatCentavosPorUnidade(c.valorCentavos, item.quantidade),
+          aprovado: f.id === s.fornecedorAprovadoId ? "Sim" : "—",
+          valorUnidade: item.quantidade ? c.valorCentavos / 100 / item.quantidade : null,
+          valorTotal: c.valorCentavos / 100,
         });
       }
     }
   }
+  // Sem linha de total aqui: somaria as cotações de todos os fornecedores,
+  // inclusive os não escolhidos — o número não significaria nada.
+  itens.finalizar();
 
-  itensSheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: itensSheet.columns.length },
-  };
-  itensSheet.views = [{ state: "frozen", ySplit: 1 }];
-
-  const buffer = await workbook.xlsx.writeBuffer();
-  const filename = `solicitacoes-${new Date().toISOString().slice(0, 10)}.xlsx`;
-
-  return new Response(buffer, {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
-  });
+  return respostaExcel(workbook, "solicitacoes");
 }

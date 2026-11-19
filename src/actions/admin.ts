@@ -84,6 +84,19 @@ export async function alternarAtivoUsuario(
   return {};
 }
 
+/** Controle de Compras é uma permissão extra, independente do papel (ex:
+ * uma pessoa da Diretoria que também lança notas fiscais). */
+export async function alternarControleComprasUsuario(
+  id: string,
+  controleCompras: boolean
+): Promise<ActionResult> {
+  await requireRole("ADMIN");
+
+  await prisma.profile.update({ where: { id }, data: { controleCompras } });
+  revalidatePath("/admin/usuarios");
+  return {};
+}
+
 export async function resetarSenhaUsuario(
   id: string
 ): Promise<ActionResult<{ senha: string }>> {

@@ -7,6 +7,7 @@ import { Plus, KeyRound, Copy, Users, Pencil, Eye, EyeOff } from "lucide-react";
 import {
   criarUsuario,
   alternarAtivoUsuario,
+  alternarControleComprasUsuario,
   resetarSenhaUsuario,
   atualizarCredenciaisUsuario,
 } from "@/actions/admin";
@@ -90,6 +91,7 @@ type Usuario = {
   email: string;
   role: Role;
   ativo: boolean;
+  controleCompras: boolean;
   setorNome: string | null;
 };
 type Setor = { id: string; nome: string };
@@ -422,6 +424,21 @@ export function UsuariosManager({
     }
   }
 
+  async function handleToggleControleCompras(id: string, controleCompras: boolean) {
+    setPendingId(id);
+    const result = await alternarControleComprasUsuario(id, controleCompras);
+    setPendingId(null);
+    if (result?.error) toast.error(result.error);
+    else {
+      toast.success(
+        controleCompras
+          ? "Acesso ao Controle de Compras liberado."
+          : "Acesso ao Controle de Compras removido."
+      );
+      router.refresh();
+    }
+  }
+
   async function handleResetarSenha(id: string) {
     setPendingId(id);
     const result = await resetarSenhaUsuario(id);
@@ -452,7 +469,7 @@ export function UsuariosManager({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-x-auto rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -460,6 +477,7 @@ export function UsuariosManager({
                 <TableHead>E-mail</TableHead>
                 <TableHead>Papel</TableHead>
                 <TableHead>Setor</TableHead>
+                <TableHead>Controle de Compras</TableHead>
                 <TableHead>Ativo</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
@@ -475,6 +493,14 @@ export function UsuariosManager({
                     </Badge>
                   </TableCell>
                   <TableCell>{u.setorNome ?? "—"}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={u.controleCompras}
+                      disabled={pendingId === u.id}
+                      aria-label={`Acesso de ${u.nome} ao Controle de Compras`}
+                      onCheckedChange={(v) => handleToggleControleCompras(u.id, v)}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Switch
                       checked={u.ativo}

@@ -20,10 +20,16 @@ import {
   type SolicitacaoDetalhada,
 } from "../solicitacoes/[id]/detail-content";
 import type { SolicitacaoFlags } from "@/lib/solicitacoes/permissions";
+import type { StatusSolicitacao } from "@/generated/prisma";
+import { StatusBadge } from "@/components/status-badge";
+import { formatCentavos } from "@/lib/format";
 import { ControleComprasRowEditor } from "./row-editor";
 import { cn } from "@/lib/utils";
 
 const dateFmt = new Intl.DateTimeFormat("pt-BR", {
+  // Fixo em Brasília: o servidor (container) roda em UTC, e sem isso as
+  // datas renderizadas no servidor saem 3h adiantadas.
+  timeZone: "America/Sao_Paulo",
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
@@ -32,6 +38,9 @@ const dateFmt = new Intl.DateTimeFormat("pt-BR", {
 export type ControleComprasRow = {
   id: string;
   numero: string;
+  status: StatusSolicitacao;
+  setorNome: string;
+  totalCentavos: number;
   requisitanteNome: string;
   aprovadoEm: Date | null;
   fornecedorNome: string;
@@ -106,7 +115,7 @@ export function ControleComprasHistoryList({ rows }: { rows: ControleComprasRow[
                 <div className="min-w-0">
                   <p className="font-data text-sm font-semibold">{row.numero}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {row.requisitanteNome}
+                    {row.requisitanteNome} · {row.setorNome}
                   </p>
                 </div>
               </div>
@@ -124,10 +133,14 @@ export function ControleComprasHistoryList({ rows }: { rows: ControleComprasRow[
                 </span>
               </div>
 
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 flex-wrap items-center gap-3">
+                <span className="font-data whitespace-nowrap text-sm font-semibold tabular-nums">
+                  {formatCentavos(row.totalCentavos)}
+                </span>
                 <span className="whitespace-nowrap text-xs text-muted-foreground">
                   {row.aprovadoEm ? dateFmt.format(row.aprovadoEm) : ""}
                 </span>
+                {row.status === "CONCLUIDA" && <StatusBadge status={row.status} />}
                 {temNotaFiscal ? (
                   <Badge
                     variant="outline"

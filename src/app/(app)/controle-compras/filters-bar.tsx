@@ -6,6 +6,20 @@ import { Download, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const SITUACAO_ITEMS = [
+  { label: "Todas", value: "" },
+  { label: "Aprovadas (em andamento)", value: "aprovada" },
+  { label: "Concluídas", value: "concluida" },
+];
 
 export function ControleComprasFiltersBar() {
   const router = useRouter();
@@ -16,6 +30,7 @@ export function ControleComprasFiltersBar() {
   const ate = searchParams.get("ate") ?? "";
   const q = searchParams.get("q") ?? "";
   const nf = searchParams.get("nf") ?? "";
+  const situacao = searchParams.get("situacao") ?? "";
   const [busca, setBusca] = useState(q);
 
   const updateParam = useCallback(
@@ -31,7 +46,7 @@ export function ControleComprasFiltersBar() {
     [router, pathname, searchParams]
   );
 
-  const hasFilters = de || ate || q || nf;
+  const hasFilters = de || ate || q || nf || situacao;
   const exportHref = `/api/controle-compras/export${
     searchParams.toString() ? `?${searchParams.toString()}` : ""
   }`;
@@ -45,7 +60,7 @@ export function ControleComprasFiltersBar() {
         <InputGroup className="w-64">
           <InputGroupInput
             id="cc-busca"
-            placeholder="Número, requisitante ou fornecedor"
+            placeholder="Número, NF, requisitante ou fornecedor"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             onBlur={() => updateParam("q", busca)}
@@ -57,6 +72,28 @@ export function ControleComprasFiltersBar() {
             <Search />
           </InputGroupAddon>
         </InputGroup>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-muted-foreground">Situação</label>
+        <Select
+          items={SITUACAO_ITEMS}
+          value={situacao}
+          onValueChange={(value) => updateParam("situacao", value as string)}
+        >
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Todas" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              {SITUACAO_ITEMS.map((item) => (
+                <SelectItem key={item.value || "all"} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">

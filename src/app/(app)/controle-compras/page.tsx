@@ -25,6 +25,7 @@ function hrefParaNf(filters: ControleComprasFilterInput, nf: string | null) {
   if (nf) params.set("nf", nf);
   if (filters.de) params.set("de", filters.de);
   if (filters.ate) params.set("ate", filters.ate);
+  if (filters.situacao) params.set("situacao", filters.situacao);
   if (filters.q) params.set("q", filters.q);
   const qs = params.toString();
   return `/controle-compras${qs ? `?${qs}` : ""}`;
@@ -37,7 +38,9 @@ export default async function ControleComprasPage({
 }) {
   await requireControleCompras();
   const filters = parseControleComprasFilters(await searchParams);
-  const hasFilters = Boolean(filters.de || filters.ate || filters.nf || filters.q);
+  const hasFilters = Boolean(
+    filters.de || filters.ate || filters.nf || filters.situacao || filters.q
+  );
 
   const where = buildControleComprasWhere(filters);
   // Os cards de "Aprovadas"/"Aguardando nota fiscal" precisam continuar
@@ -50,6 +53,7 @@ export default async function ControleComprasPage({
       where,
       include: {
         requisitante: true,
+        setor: true,
         fornecedorAprovado: true,
         fornecedores: { include: { cotacoes: true } },
         itens: { orderBy: { ordem: "asc" } },
@@ -74,7 +78,7 @@ export default async function ControleComprasPage({
 
   const kpis = [
     {
-      label: "Aprovadas",
+      label: "Compras aprovadas",
       value: String(totalSemNf),
       icon: ClipboardCheck,
       accent: "border-l-emerald-500",
@@ -101,7 +105,7 @@ export default async function ControleComprasPage({
             Controle de Compras
           </h1>
           <p className="text-sm text-muted-foreground">
-            Acompanhamento das solicitações aprovadas
+            Nota fiscal e acompanhamento das compras aprovadas e concluídas
           </p>
         </div>
       </div>
@@ -164,7 +168,7 @@ export default async function ControleComprasPage({
             <EmptyTitle>Nenhuma solicitação encontrada</EmptyTitle>
             <EmptyDescription>
               {hasFilters
-                ? "Nenhuma solicitação aprovada corresponde aos filtros selecionados."
+                ? "Nenhuma compra corresponde aos filtros selecionados."
                 : "Assim que a Diretoria aprovar uma solicitação, ela aparece aqui."}
             </EmptyDescription>
           </EmptyHeader>
@@ -174,6 +178,9 @@ export default async function ControleComprasPage({
           rows={comTotal.map((s) => ({
             id: s.id,
             numero: s.numero,
+            status: s.status,
+            setorNome: s.setor.nome,
+            totalCentavos: s.totalCentavos,
             requisitanteNome: s.requisitante.nome,
             aprovadoEm: s.aprovadoEm,
             fornecedorNome: s.fornecedorAprovado?.nome ?? "",
